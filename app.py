@@ -85,6 +85,7 @@ def login_page():
                 st.error("❌ Invalid username or password")
     
 
+
 def logout():
     """Logout admin"""
     st.session_state.authenticated = False
@@ -209,15 +210,26 @@ if mode == "Admin Panel":
         
         # Preview
         st.header("3. Preview")
-        preview_name = st.text_input("Preview Name", "John Doe")
+        
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            preview_name = st.text_input("Preview Name", "John Doe")
+        with col2:
+            st.write("")  # Spacing
+            st.write("")  # Spacing
+            if st.button("🔄 Refresh Preview", use_container_width=True):
+                st.rerun()
         
         if st.session_state.config['template_image']:
+            # Force preview to update by using current values
             preview_cert = generate_certificate(
                 preview_name,
                 st.session_state.config['template_image'],
                 name_x, name_y, font_size, font_color, font_style
             )
-            st.image(preview_cert, caption="Preview Certificate", use_column_width=True)
+            st.image(preview_cert, caption=f"Preview Certificate (Font: {font_style})", use_column_width=True)
+        
+        st.info(f"💡 Current settings: Font={font_style}, Size={font_size}, Position=({name_x}, {name_y})")
         
         # Participant Management
         st.header("4. Manage Participants")
