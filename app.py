@@ -57,7 +57,11 @@ def save_config():
         'name_y': st.session_state.config['name_y'],
         'font_size': st.session_state.config['font_size'],
         'font_color': st.session_state.config['font_color'],
-        'participants': st.session_state.config['participants']
+        'font_style': st.session_state.config.get('font_style', 'Arial'),
+        'stroke_width': st.session_state.config.get('stroke_width', 0),
+        'stroke_color': st.session_state.config.get('stroke_color', (0, 0, 0)),
+        'participants': st.session_state.config['participants'],
+        'template_path': st.session_state.config['template_path']
     }
     with open('cert_config.json', 'w') as f:
         json.dump(config_to_save, f)
@@ -341,17 +345,22 @@ else:  # Download Certificate Mode
     
     # Load template if exists
     if st.session_state.config['template_path'] and os.path.exists(st.session_state.config['template_path']):
-        st.session_state.config['template_image'] = Image.open(st.session_state.config['template_path'])
+        try:
+            st.session_state.config['template_image'] = Image.open(st.session_state.config['template_path'])
+        except Exception as e:
+            st.error(f"Error loading template: {e}")
+            st.session_state.config['template_image'] = None
     
     if not st.session_state.config['template_image']:
         st.warning("⚠️ No certificate template has been uploaded yet. Please contact the administrator.")
+        st.info("🔧 Admin: Please go to the Admin Panel and upload a certificate template.")
     else:
         st.write("Enter your name to download your certificate:")
         
         user_name = st.text_input("Your Name", placeholder="Enter your full name")
         
         if user_name:
-            # Check if participant is in the list
+            # Check if participant is in the list (only if list exists and has entries)
             if st.session_state.config['participants'] and user_name not in st.session_state.config['participants']:
                 st.error("❌ Name not found in participant list. Please check your spelling or contact the administrator.")
             else:
@@ -366,35 +375,39 @@ else:  # Download Certificate Mode
                 if isinstance(cert_stroke_color, list):
                     cert_stroke_color = tuple(cert_stroke_color)
                 
-                certificate = generate_certificate(
-                    user_name,
-                    st.session_state.config['template_image'],
-                    st.session_state.config['name_x'],
-                    st.session_state.config['name_y'],
-                    st.session_state.config['font_size'],
-                    cert_color,
-                    st.session_state.config.get('font_style', 'Arial'),
-                    st.session_state.config.get('stroke_width', 0),
-                    cert_stroke_color
-                )
-                
-                # Display certificate
-                st.image(certificate, caption="Your Certificate", use_column_width=True)
-                
-                # Download button
-                buf = io.BytesIO()
-                certificate.save(buf, format='PNG')
-                buf.seek(0)
-                
-                st.download_button(
-                    label="⬇️ Download Certificate",
-                    data=buf,
-                    file_name=f"certificate_{user_name.replace(' ', '_')}.png",
-                    mime="image/png",
-                    type="primary"
-                )
-                
-                st.success("✅ Certificate generated successfully!")
+                try:
+                    certificate = generate_certificate(
+                        user_name,
+                        st.session_state.config['template_image'],
+                        st.session_state.config['name_x'],
+                        st.session_state.config['name_y'],
+                        st.session_state.config['font_size'],
+                        cert_color,
+                        st.session_state.config.get('font_style', 'Arial'),
+                        st.session_state.config.get('stroke_width', 0),
+                        cert_stroke_color
+                    )
+                    
+                    # Display certificate
+                    st.image(certificate, caption="Your Certificate", use_column_width=True)
+                    
+                    # Download button
+                    buf = io.BytesIO()
+                    certificate.save(buf, format='PNG')
+                    buf.seek(0)
+                    
+                    st.download_button(
+                        label="⬇️ Download Certificate",
+                        data=buf,
+                        file_name=f"certificate_{user_name.replace(' ', '_')}.png",
+                        mime="image/png",
+                        type="primary"
+                    )
+                    
+                    st.success("✅ Certificate generated successfully!")
+                except Exception as e:
+                    st.error(f"❌ Error generating certificate: {e}")
+                    st.info("Please contact the administrator if this error persists.")
 
 # Footer
 st.sidebar.markdown("---")
