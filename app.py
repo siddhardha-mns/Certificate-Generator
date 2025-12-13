@@ -84,8 +84,6 @@ def login_page():
             else:
                 st.error("❌ Invalid username or password")
     
-    st.info("💡 Default credentials: username='admin', password='admin123'")
-    st.warning("⚠️ Please change the default credentials in the code for security!")
 
 def logout():
     """Logout admin"""
