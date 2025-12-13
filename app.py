@@ -24,6 +24,12 @@ if 'config' not in st.session_state:
         'participants': []
     }
 
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+
+if 'show_login' not in st.session_state:
+    st.session_state.show_login = False
+
 # Available font styles with fallback options
 FONT_STYLES = {
     'Arial': ['arial.ttf', 'Arial.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'],
@@ -43,12 +49,6 @@ FONT_STYLES = {
     'Trebuchet MS': ['trebuc.ttf', 'Trebuchet-MS.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'],
     'Trebuchet MS Bold': ['trebucbd.ttf', 'Trebuchet-MS-Bold.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'],
 }
-
-if 'authenticated' not in st.session_state:
-    st.session_state.authenticated = False
-
-if 'show_login' not in st.session_state:
-    st.session_state.show_login = False
 
 def save_config():
     """Save configuration to a JSON file"""
@@ -101,6 +101,8 @@ def login_page():
                 st.rerun()
             else:
                 st.error("❌ Invalid username or password")
+    
+   
 
 def logout():
     """Logout admin"""
@@ -183,8 +185,81 @@ load_config()
 st.sidebar.title("Certificate Generator")
 mode = st.sidebar.radio("Select Mode", ["Download Certificate", "Admin Panel"])
 
-# Admin Panel - Show login if not authenticated
-if mode == "Admin Panel":
+# Download Certificate Mode - Default first page
+if mode == "Download Certificate":
+    st.title("📜 Download Your Certificate")
+    
+    # Load template if exists
+    if st.session_state.config.get('template_path') and os.path.exists(st.session_state.config['template_path']):
+        try:
+            st.session_state.config['template_image'] = Image.open(st.session_state.config['template_path'])
+        except Exception as e:
+            st.error(f"Error loading template: {e}")
+            st.session_state.config['template_image'] = None
+    
+    # ALWAYS show name input - THIS IS THE KEY CHANGE
+    st.write("**Enter your name below to generate your certificate:**")
+    user_name = st.text_input("Your Full Name", placeholder="e.g., John Doe", key="download_name_input")
+    
+    # Check if template exists
+    if not st.session_state.config.get('template_image'):
+        st.warning("⚠️ No certificate template has been uploaded yet. Please contact the administrator.")
+        st.info("🔧 Admin: Please go to the Admin Panel and upload a certificate template.")
+    
+    # If user entered a name AND template exists, generate certificate
+    if user_name and st.session_state.config.get('template_image'):
+        # Check if participant is in the list (only if list exists and has entries)
+        if st.session_state.config.get('participants') and user_name not in st.session_state.config['participants']:
+            st.error("❌ Name not found in participant list. Please check your spelling or contact the administrator.")
+            st.info(f"📋 Total participants registered: {len(st.session_state.config['participants'])}")
+        else:
+            # Generate certificate
+            try:
+                # Ensure colors are properly formatted
+                cert_color = st.session_state.config.get('font_color', (0, 0, 0))
+                if isinstance(cert_color, list):
+                    cert_color = tuple(cert_color)
+                
+                cert_stroke_color = st.session_state.config.get('stroke_color', (0, 0, 0))
+                if isinstance(cert_stroke_color, list):
+                    cert_stroke_color = tuple(cert_stroke_color)
+                
+                certificate = generate_certificate(
+                    user_name,
+                    st.session_state.config['template_image'],
+                    st.session_state.config.get('name_x', 500),
+                    st.session_state.config.get('name_y', 400),
+                    st.session_state.config.get('font_size', 60),
+                    cert_color,
+                    st.session_state.config.get('font_style', 'Arial'),
+                    st.session_state.config.get('stroke_width', 0),
+                    cert_stroke_color
+                )
+                
+                # Display certificate
+                st.success("✅ Certificate generated successfully!")
+                st.image(certificate, caption="Your Certificate", use_column_width=True)
+                
+                # Download button
+                buf = io.BytesIO()
+                certificate.save(buf, format='PNG')
+                buf.seek(0)
+                
+                st.download_button(
+                    label="⬇️ Download Certificate",
+                    data=buf,
+                    file_name=f"certificate_{user_name.replace(' ', '_')}.png",
+                    mime="image/png",
+                    type="primary",
+                    use_container_width=True
+                )
+                
+            except Exception as e:
+                st.error(f"❌ Error generating certificate: {str(e)}")
+                st.info("Please contact the administrator if this error persists.")
+
+# Admin Panel
+elif mode == "Admin Panel":
     if not st.session_state.authenticated:
         login_page()
     else:
