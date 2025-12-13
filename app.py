@@ -18,7 +18,7 @@ if 'config' not in st.session_state:
         'name_y': 400,
         'font_size': 60,
         'font_color': (0, 0, 0),  # RGB
-        'font_style': 'Arial',
+        'font_style': 'Times New Roman Italic',  # Changed default to italic
         'stroke_width': 0,
         'stroke_color': (0, 0, 0),
         'participants': []
@@ -57,7 +57,7 @@ def save_config():
         'name_y': st.session_state.config['name_y'],
         'font_size': st.session_state.config['font_size'],
         'font_color': st.session_state.config['font_color'],
-        'font_style': st.session_state.config.get('font_style', 'Arial'),
+        'font_style': st.session_state.config.get('font_style', 'Times New Roman Italic'),
         'stroke_width': st.session_state.config.get('stroke_width', 0),
         'stroke_color': st.session_state.config.get('stroke_color', (0, 0, 0)),
         'participants': st.session_state.config['participants'],
@@ -109,7 +109,7 @@ def logout():
     st.session_state.authenticated = False
     st.session_state.show_login = False
 
-def generate_certificate(name, template_img, x, y, font_size, color, font_style='Arial', stroke_width=0, stroke_color=(0, 0, 0)):
+def generate_certificate(name, template_img, x, y, font_size, color, font_style='Times New Roman Italic', stroke_width=0, stroke_color=(0, 0, 0)):
     """Generate certificate with name on template"""
     img = template_img.copy()
     draw = ImageDraw.Draw(img)
@@ -128,7 +128,7 @@ def generate_certificate(name, template_img, x, y, font_size, color, font_style=
     
     # Try to load the selected font style
     font = None
-    font_paths = FONT_STYLES.get(font_style, FONT_STYLES['Arial'])
+    font_paths = FONT_STYLES.get(font_style, FONT_STYLES['Times New Roman Italic'])
     
     # Try each font path for the selected style
     for font_path in font_paths:
@@ -231,7 +231,7 @@ if mode == "Download Certificate":
                     st.session_state.config.get('name_y', 400),
                     st.session_state.config.get('font_size', 60),
                     cert_color,
-                    st.session_state.config.get('font_style', 'Arial'),
+                    st.session_state.config.get('font_style', 'Times New Roman Italic'),
                     st.session_state.config.get('stroke_width', 0),
                     cert_stroke_color
                 )
@@ -309,7 +309,7 @@ elif mode == "Admin Panel":
             font_style = st.selectbox(
                 "Font Style & Weight",
                 options=list(FONT_STYLES.keys()),
-                index=list(FONT_STYLES.keys()).index(st.session_state.config.get('font_style', 'Arial')),
+                index=list(FONT_STYLES.keys()).index(st.session_state.config.get('font_style', 'Times New Roman Italic')),
                 help="Choose font family and weight (Regular/Bold/Italic). Regular fonts are thinner, Bold fonts are thicker."
             )
         
