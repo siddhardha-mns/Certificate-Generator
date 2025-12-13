@@ -19,6 +19,8 @@ if 'config' not in st.session_state:
         'font_size': 60,
         'font_color': (0, 0, 0),  # RGB
         'font_style': 'Arial',
+        'stroke_width': 0,
+        'stroke_color': (0, 0, 0),
         'participants': []
     }
 
@@ -59,6 +61,12 @@ def load_config():
     if os.path.exists('cert_config.json'):
         with open('cert_config.json', 'r') as f:
             config = json.load(f)
+            # Convert font_color list to tuple if it exists
+            if 'font_color' in config and isinstance(config['font_color'], list):
+                config['font_color'] = tuple(config['font_color'])
+            # Convert stroke_color list to tuple if it exists
+            if 'stroke_color' in config and isinstance(config['stroke_color'], list):
+                config['stroke_color'] = tuple(config['stroke_color'])
             st.session_state.config.update(config)
 
 def check_password(username, password):
@@ -91,10 +99,22 @@ def logout():
     st.session_state.authenticated = False
     st.session_state.show_login = False
 
-def generate_certificate(name, template_img, x, y, font_size, color, font_style='Arial'):
+def generate_certificate(name, template_img, x, y, font_size, color, font_style='Arial', stroke_width=0, stroke_color=(0, 0, 0)):
     """Generate certificate with name on template"""
     img = template_img.copy()
     draw = ImageDraw.Draw(img)
+    
+    # Ensure color is a tuple of integers
+    if isinstance(color, (list, tuple)):
+        color = tuple(int(c) for c in color)
+    else:
+        color = (0, 0, 0)  # Default to black
+    
+    # Ensure stroke_color is a tuple of integers
+    if isinstance(stroke_color, (list, tuple)):
+        stroke_color = tuple(int(c) for c in stroke_color)
+    else:
+        stroke_color = (0, 0, 0)  # Default to black
     
     # Try to load the selected font style
     font = None
@@ -130,8 +150,11 @@ def generate_certificate(name, template_img, x, y, font_size, color, font_style=
     bbox = draw.textbbox((0, 0), name, font=font)
     text_width = bbox[2] - bbox[0]
     
-    # Draw the name
-    draw.text((x - text_width//2, y), name, font=font, fill=color)
+    # Draw the name with stroke (outline) if stroke_width > 0
+    if stroke_width > 0:
+        draw.text((x - text_width//2, y), name, font=font, fill=color, stroke_width=stroke_width, stroke_fill=stroke_color)
+    else:
+        draw.text((x - text_width//2, y), name, font=font, fill=color)
     
     return img
 
@@ -195,11 +218,28 @@ if mode == "Admin Panel":
                 options=list(FONT_STYLES.keys()),
                 index=list(FONT_STYLES.keys()).index(st.session_state.config.get('font_style', 'Arial'))
             )
-            
+        
+        # Text styling options
+        st.subheader("Text Styling")
+        col3, col4 = st.columns(2)
+        
+        with col3:
             # Color picker
             color_hex = st.color_picker("Text Color", "#000000")
             # Convert hex to RGB
             font_color = tuple(int(color_hex[i:i+2], 16) for i in (1, 3, 5))
+        
+        with col4:
+            # Stroke/outline options
+            stroke_width = st.slider("Text Outline Thickness", 0, 10, st.session_state.config.get('stroke_width', 0), 
+                                     help="0 = No outline, higher values = thicker outline")
+        
+        # Stroke color (only show if stroke_width > 0)
+        if stroke_width > 0:
+            stroke_color_hex = st.color_picker("Outline Color", "#000000")
+            stroke_color = tuple(int(stroke_color_hex[i:i+2], 16) for i in (1, 3, 5))
+        else:
+            stroke_color = (0, 0, 0)
         
         # Update config
         st.session_state.config['name_x'] = name_x
@@ -207,6 +247,8 @@ if mode == "Admin Panel":
         st.session_state.config['font_size'] = font_size
         st.session_state.config['font_style'] = font_style
         st.session_state.config['font_color'] = font_color
+        st.session_state.config['stroke_width'] = stroke_width
+        st.session_state.config['stroke_color'] = stroke_color
         
         # Preview
         st.header("3. Preview")
@@ -225,11 +267,12 @@ if mode == "Admin Panel":
             preview_cert = generate_certificate(
                 preview_name,
                 st.session_state.config['template_image'],
-                name_x, name_y, font_size, font_color, font_style
+                name_x, name_y, font_size, font_color, font_style, stroke_width, stroke_color
             )
             st.image(preview_cert, caption=f"Preview Certificate (Font: {font_style})", use_column_width=True)
         
-        st.info(f"💡 Current settings: Font={font_style}, Size={font_size}, Position=({name_x}, {name_y})")
+        outline_text = f", Outline: {stroke_width}px" if stroke_width > 0 else ""
+        st.info(f"💡 Current settings: Font={font_style}, Size={font_size}, Position=({name_x}, {name_y}){outline_text}")
         
         # Participant Management
         st.header("4. Manage Participants")
@@ -293,14 +336,26 @@ else:  # Download Certificate Mode
                 st.error("❌ Name not found in participant list. Please check your spelling or contact the administrator.")
             else:
                 # Generate certificate
+                # Ensure color is properly formatted
+                cert_color = st.session_state.config.get('font_color', (0, 0, 0))
+                if isinstance(cert_color, list):
+                    cert_color = tuple(cert_color)
+                
+                # Ensure stroke_color is properly formatted
+                cert_stroke_color = st.session_state.config.get('stroke_color', (0, 0, 0))
+                if isinstance(cert_stroke_color, list):
+                    cert_stroke_color = tuple(cert_stroke_color)
+                
                 certificate = generate_certificate(
                     user_name,
                     st.session_state.config['template_image'],
                     st.session_state.config['name_x'],
                     st.session_state.config['name_y'],
                     st.session_state.config['font_size'],
-                    st.session_state.config['font_color'],
-                    st.session_state.config.get('font_style', 'Arial')
+                    cert_color,
+                    st.session_state.config.get('font_style', 'Arial'),
+                    st.session_state.config.get('stroke_width', 0),
+                    cert_stroke_color
                 )
                 
                 # Display certificate
