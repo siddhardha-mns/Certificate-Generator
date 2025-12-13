@@ -103,6 +103,7 @@ def login_page():
                 st.error("❌ Invalid username or password")
     
 
+
 def logout():
     """Logout admin"""
     st.session_state.authenticated = False
@@ -182,7 +183,7 @@ load_config()
 
 # Sidebar for mode selection
 st.sidebar.title("Certificate Generator")
-mode = st.sidebar.radio("Select Mode", ["Admin Panel", "Download Certificate"])
+mode = st.sidebar.radio("Select Mode", ["Download Certificate", "Admin Panel"])
 
 # Admin Panel - Show login if not authenticated
 if mode == "Admin Panel":
@@ -340,75 +341,6 @@ if mode == "Admin Panel":
             save_config()
             st.success("Configuration saved successfully!")
 
-else:  # Download Certificate Mode
-    st.title("📜 Download Your Certificate")
-    
-    # Load template if exists
-    if st.session_state.config['template_path'] and os.path.exists(st.session_state.config['template_path']):
-        try:
-            st.session_state.config['template_image'] = Image.open(st.session_state.config['template_path'])
-        except Exception as e:
-            st.error(f"Error loading template: {e}")
-            st.session_state.config['template_image'] = None
-    
-    if not st.session_state.config['template_image']:
-        st.warning("⚠️ No certificate template has been uploaded yet. Please contact the administrator.")
-        st.info("🔧 Admin: Please go to the Admin Panel and upload a certificate template.")
-    else:
-        st.write("Enter your name to download your certificate:")
-        
-        user_name = st.text_input("Your Name", placeholder="Enter your full name")
-        
-        if user_name:
-            # Check if participant is in the list (only if list exists and has entries)
-            if st.session_state.config['participants'] and user_name not in st.session_state.config['participants']:
-                st.error("❌ Name not found in participant list. Please check your spelling or contact the administrator.")
-            else:
-                # Generate certificate
-                # Ensure color is properly formatted
-                cert_color = st.session_state.config.get('font_color', (0, 0, 0))
-                if isinstance(cert_color, list):
-                    cert_color = tuple(cert_color)
-                
-                # Ensure stroke_color is properly formatted
-                cert_stroke_color = st.session_state.config.get('stroke_color', (0, 0, 0))
-                if isinstance(cert_stroke_color, list):
-                    cert_stroke_color = tuple(cert_stroke_color)
-                
-                try:
-                    certificate = generate_certificate(
-                        user_name,
-                        st.session_state.config['template_image'],
-                        st.session_state.config['name_x'],
-                        st.session_state.config['name_y'],
-                        st.session_state.config['font_size'],
-                        cert_color,
-                        st.session_state.config.get('font_style', 'Arial'),
-                        st.session_state.config.get('stroke_width', 0),
-                        cert_stroke_color
-                    )
-                    
-                    # Display certificate
-                    st.image(certificate, caption="Your Certificate", use_column_width=True)
-                    
-                    # Download button
-                    buf = io.BytesIO()
-                    certificate.save(buf, format='PNG')
-                    buf.seek(0)
-                    
-                    st.download_button(
-                        label="⬇️ Download Certificate",
-                        data=buf,
-                        file_name=f"certificate_{user_name.replace(' ', '_')}.png",
-                        mime="image/png",
-                        type="primary"
-                    )
-                    
-                    st.success("✅ Certificate generated successfully!")
-                except Exception as e:
-                    st.error(f"❌ Error generating certificate: {e}")
-                    st.info("Please contact the administrator if this error persists.")
-
 # Footer
 st.sidebar.markdown("---")
-st.sidebar.info("💡 Tip: Use Admin Panel to configure the certificate template and add participants.")
+st.sidebar.info("💡 Tip: Users can download certificates from the main page. Admins use the Admin Panel to configure.")
