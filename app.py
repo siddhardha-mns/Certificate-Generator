@@ -28,14 +28,20 @@ if 'config' not in st.session_state:
 FONT_STYLES = {
     'Arial': ['arial.ttf', 'Arial.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'],
     'Arial Bold': ['arialbd.ttf', 'Arial-Bold.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'],
+    'Arial Narrow': ['arialn.ttf', 'Arial-Narrow.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'],
     'Times New Roman': ['times.ttf', 'Times-New-Roman.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf'],
     'Times New Roman Bold': ['timesbd.ttf', 'Times-New-Roman-Bold.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf'],
+    'Times New Roman Italic': ['timesi.ttf', 'Times-New-Roman-Italic.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf'],
     'Courier New': ['cour.ttf', 'Courier-New.ttf', '/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf'],
+    'Courier New Bold': ['courbd.ttf', 'Courier-New-Bold.ttf', '/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf'],
     'Georgia': ['georgia.ttf', 'Georgia.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf'],
+    'Georgia Bold': ['georgiab.ttf', 'Georgia-Bold.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf'],
     'Comic Sans MS': ['comic.ttf', 'Comic-Sans-MS.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'],
     'Impact': ['impact.ttf', 'Impact.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'],
     'Verdana': ['verdana.ttf', 'Verdana.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'],
+    'Verdana Bold': ['verdanab.ttf', 'Verdana-Bold.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'],
     'Trebuchet MS': ['trebuc.ttf', 'Trebuchet-MS.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'],
+    'Trebuchet MS Bold': ['trebucbd.ttf', 'Trebuchet-MS-Bold.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'],
 }
 
 if 'authenticated' not in st.session_state:
@@ -91,8 +97,7 @@ def login_page():
                 st.rerun()
             else:
                 st.error("❌ Invalid username or password")
-    
-
+  
 
 def logout():
     """Logout admin"""
@@ -120,41 +125,51 @@ def generate_certificate(name, template_img, x, y, font_size, color, font_style=
     font = None
     font_paths = FONT_STYLES.get(font_style, FONT_STYLES['Arial'])
     
+    # Try each font path for the selected style
     for font_path in font_paths:
         try:
-            font = ImageFont.truetype(font_path, font_size)
+            font = ImageFont.truetype(font_path, int(font_size))
             break
-        except:
+        except Exception as e:
             continue
     
     # If no font loaded, try common fallbacks
     if font is None:
         fallback_fonts = [
             "arial.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
             "/System/Library/Fonts/Helvetica.ttc",
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+            "/Library/Fonts/Arial.ttf"
         ]
         for fallback in fallback_fonts:
             try:
-                font = ImageFont.truetype(fallback, font_size)
+                font = ImageFont.truetype(fallback, int(font_size))
                 break
             except:
                 continue
     
-    # Last resort: use default font
+    # Last resort: use default font (but scale it if possible)
     if font is None:
-        font = ImageFont.load_default()
+        try:
+            font = ImageFont.load_default()
+        except:
+            font = ImageFont.load_default()
     
     # Get text bounding box for centering if needed
-    bbox = draw.textbbox((0, 0), name, font=font)
-    text_width = bbox[2] - bbox[0]
+    try:
+        bbox = draw.textbbox((0, 0), name, font=font)
+        text_width = bbox[2] - bbox[0]
+    except:
+        text_width = len(name) * (int(font_size) // 2)
     
     # Draw the name with stroke (outline) if stroke_width > 0
+    stroke_width = int(stroke_width)
     if stroke_width > 0:
-        draw.text((x - text_width//2, y), name, font=font, fill=color, stroke_width=stroke_width, stroke_fill=stroke_color)
+        draw.text((int(x) - text_width//2, int(y)), name, font=font, fill=color, stroke_width=stroke_width, stroke_fill=stroke_color)
     else:
-        draw.text((x - text_width//2, y), name, font=font, fill=color)
+        draw.text((int(x) - text_width//2, int(y)), name, font=font, fill=color)
     
     return img
 
@@ -212,11 +227,12 @@ if mode == "Admin Panel":
         with col2:
             font_size = st.slider("Font Size", 20, 150, st.session_state.config['font_size'])
             
-            # Font style selector
+            # Font style selector - organized by weight
             font_style = st.selectbox(
-                "Font Style",
+                "Font Style & Weight",
                 options=list(FONT_STYLES.keys()),
-                index=list(FONT_STYLES.keys()).index(st.session_state.config.get('font_style', 'Arial'))
+                index=list(FONT_STYLES.keys()).index(st.session_state.config.get('font_style', 'Arial')),
+                help="Choose font family and weight (Regular/Bold/Italic). Regular fonts are thinner, Bold fonts are thicker."
             )
         
         # Text styling options
@@ -255,24 +271,32 @@ if mode == "Admin Panel":
         
         col1, col2 = st.columns([3, 1])
         with col1:
-            preview_name = st.text_input("Preview Name", "John Doe")
+            preview_name = st.text_input("Preview Name", "John Doe", key="preview_name_input")
         with col2:
             st.write("")  # Spacing
             st.write("")  # Spacing
-            if st.button("🔄 Refresh Preview", use_container_width=True):
-                st.rerun()
+            refresh_clicked = st.button("🔄 Refresh Preview", use_container_width=True)
         
         if st.session_state.config['template_image']:
-            # Force preview to update by using current values
+            # Create a unique key for the image to force re-render
+            preview_key = f"{font_style}_{font_size}_{name_x}_{name_y}_{stroke_width}_{preview_name}"
+            
+            # Force preview to update by using current values directly
             preview_cert = generate_certificate(
                 preview_name,
                 st.session_state.config['template_image'],
-                name_x, name_y, font_size, font_color, font_style, stroke_width, stroke_color
+                int(name_x), int(name_y), int(font_size), font_color, font_style, int(stroke_width), stroke_color
             )
-            st.image(preview_cert, caption=f"Preview Certificate (Font: {font_style})", use_column_width=True)
+            
+            # Use a container to force re-render
+            preview_container = st.container()
+            with preview_container:
+                st.image(preview_cert, caption=f"Preview Certificate (Font: {font_style}, Size: {font_size})", use_column_width=True, key=preview_key)
         
         outline_text = f", Outline: {stroke_width}px" if stroke_width > 0 else ""
         st.info(f"💡 Current settings: Font={font_style}, Size={font_size}, Position=({name_x}, {name_y}){outline_text}")
+        
+        st.caption("💡 Tip: Change any setting above and the preview will update automatically. Click 'Refresh Preview' if you don't see changes.")
         
         # Participant Management
         st.header("4. Manage Participants")
