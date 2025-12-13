@@ -97,7 +97,7 @@ def login_page():
                 st.rerun()
             else:
                 st.error("❌ Invalid username or password")
-  
+    
 
 def logout():
     """Logout admin"""
@@ -275,12 +275,10 @@ if mode == "Admin Panel":
         with col2:
             st.write("")  # Spacing
             st.write("")  # Spacing
-            refresh_clicked = st.button("🔄 Refresh Preview", use_container_width=True)
+            if st.button("🔄 Refresh Preview", use_container_width=True):
+                st.rerun()
         
         if st.session_state.config['template_image']:
-            # Create a unique key for the image to force re-render
-            preview_key = f"{font_style}_{font_size}_{name_x}_{name_y}_{stroke_width}_{preview_name}"
-            
             # Force preview to update by using current values directly
             preview_cert = generate_certificate(
                 preview_name,
@@ -288,15 +286,13 @@ if mode == "Admin Panel":
                 int(name_x), int(name_y), int(font_size), font_color, font_style, int(stroke_width), stroke_color
             )
             
-            # Use a container to force re-render
-            preview_container = st.container()
-            with preview_container:
-                st.image(preview_cert, caption=f"Preview Certificate (Font: {font_style}, Size: {font_size})", use_column_width=True, key=preview_key)
+            # Display preview
+            st.image(preview_cert, caption=f"Preview Certificate (Font: {font_style}, Size: {font_size})", use_column_width=True)
         
         outline_text = f", Outline: {stroke_width}px" if stroke_width > 0 else ""
         st.info(f"💡 Current settings: Font={font_style}, Size={font_size}, Position=({name_x}, {name_y}){outline_text}")
         
-        st.caption("💡 Tip: Change any setting above and the preview will update automatically. Click 'Refresh Preview' if you don't see changes.")
+        st.caption("💡 Tip: Change any setting above and click 'Refresh Preview' to see changes.")
         
         # Participant Management
         st.header("4. Manage Participants")
