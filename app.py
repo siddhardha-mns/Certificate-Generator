@@ -18,8 +18,23 @@ if 'config' not in st.session_state:
         'name_y': 400,
         'font_size': 60,
         'font_color': (0, 0, 0),  # RGB
+        'font_style': 'Arial',
         'participants': []
     }
+
+# Available font styles with fallback options
+FONT_STYLES = {
+    'Arial': ['arial.ttf', 'Arial.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'],
+    'Arial Bold': ['arialbd.ttf', 'Arial-Bold.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'],
+    'Times New Roman': ['times.ttf', 'Times-New-Roman.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf'],
+    'Times New Roman Bold': ['timesbd.ttf', 'Times-New-Roman-Bold.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf'],
+    'Courier New': ['cour.ttf', 'Courier-New.ttf', '/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf'],
+    'Georgia': ['georgia.ttf', 'Georgia.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf'],
+    'Comic Sans MS': ['comic.ttf', 'Comic-Sans-MS.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'],
+    'Impact': ['impact.ttf', 'Impact.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'],
+    'Verdana': ['verdana.ttf', 'Verdana.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'],
+    'Trebuchet MS': ['trebuc.ttf', 'Trebuchet-MS.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'],
+}
 
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
@@ -77,19 +92,40 @@ def logout():
     st.session_state.authenticated = False
     st.session_state.show_login = False
 
-def generate_certificate(name, template_img, x, y, font_size, color):
+def generate_certificate(name, template_img, x, y, font_size, color, font_style='Arial'):
     """Generate certificate with name on template"""
     img = template_img.copy()
     draw = ImageDraw.Draw(img)
     
-    try:
-        # Try to use a nice font, fallback to default if not available
-        font = ImageFont.truetype("arial.ttf", font_size)
-    except:
+    # Try to load the selected font style
+    font = None
+    font_paths = FONT_STYLES.get(font_style, FONT_STYLES['Arial'])
+    
+    for font_path in font_paths:
         try:
-            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+            font = ImageFont.truetype(font_path, font_size)
+            break
         except:
-            font = ImageFont.load_default()
+            continue
+    
+    # If no font loaded, try common fallbacks
+    if font is None:
+        fallback_fonts = [
+            "arial.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/System/Library/Fonts/Helvetica.ttc",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
+        ]
+        for fallback in fallback_fonts:
+            try:
+                font = ImageFont.truetype(fallback, font_size)
+                break
+            except:
+                continue
+    
+    # Last resort: use default font
+    if font is None:
+        font = ImageFont.load_default()
     
     # Get text bounding box for centering if needed
     bbox = draw.textbbox((0, 0), name, font=font)
@@ -154,6 +190,13 @@ if mode == "Admin Panel":
         with col2:
             font_size = st.slider("Font Size", 20, 150, st.session_state.config['font_size'])
             
+            # Font style selector
+            font_style = st.selectbox(
+                "Font Style",
+                options=list(FONT_STYLES.keys()),
+                index=list(FONT_STYLES.keys()).index(st.session_state.config.get('font_style', 'Arial'))
+            )
+            
             # Color picker
             color_hex = st.color_picker("Text Color", "#000000")
             # Convert hex to RGB
@@ -163,6 +206,7 @@ if mode == "Admin Panel":
         st.session_state.config['name_x'] = name_x
         st.session_state.config['name_y'] = name_y
         st.session_state.config['font_size'] = font_size
+        st.session_state.config['font_style'] = font_style
         st.session_state.config['font_color'] = font_color
         
         # Preview
@@ -173,7 +217,7 @@ if mode == "Admin Panel":
             preview_cert = generate_certificate(
                 preview_name,
                 st.session_state.config['template_image'],
-                name_x, name_y, font_size, font_color
+                name_x, name_y, font_size, font_color, font_style
             )
             st.image(preview_cert, caption="Preview Certificate", use_column_width=True)
         
@@ -245,7 +289,8 @@ else:  # Download Certificate Mode
                     st.session_state.config['name_x'],
                     st.session_state.config['name_y'],
                     st.session_state.config['font_size'],
-                    st.session_state.config['font_color']
+                    st.session_state.config['font_color'],
+                    st.session_state.config.get('font_style', 'Arial')
                 )
                 
                 # Display certificate
