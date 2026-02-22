@@ -255,7 +255,10 @@ if 'config' not in st.session_state:
         'name_y': 400,
         'font_size': 60,
         'font_color': (0, 0, 0),
-        'font_style': 'Times New Roman Italic',
+        'font_style': 'Arial',
+        'font_weight': 'Regular',
+        'is_italic': False,
+        'custom_font_path': None,
         'stroke_width': 0,
         'stroke_color': (0, 0, 0),
         'participants': []
@@ -267,24 +270,26 @@ if 'authenticated' not in st.session_state:
 if 'show_login' not in st.session_state:
     st.session_state.show_login = False
 
-# Available font styles with fallback options
-FONT_STYLES = {
-    'Arial': ['arial.ttf', 'Arial.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'],
-    'Arial Bold': ['arialbd.ttf', 'Arial-Bold.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'],
-    'Arial Narrow': ['arialn.ttf', 'Arial-Narrow.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'],
-    'Times New Roman': ['times.ttf', 'Times-New-Roman.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf'],
-    'Times New Roman Bold': ['timesbd.ttf', 'Times-New-Roman-Bold.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf'],
-    'Times New Roman Italic': ['timesi.ttf', 'Times-New-Roman-Italic.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf'],
-    'Courier New': ['cour.ttf', 'Courier-New.ttf', '/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf'],
-    'Courier New Bold': ['courbd.ttf', 'Courier-New-Bold.ttf', '/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf'],
-    'Georgia': ['georgia.ttf', 'Georgia.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf'],
-    'Georgia Bold': ['georgiab.ttf', 'Georgia-Bold.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf'],
-    'Comic Sans MS': ['comic.ttf', 'Comic-Sans-MS.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'],
-    'Impact': ['impact.ttf', 'Impact.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'],
-    'Verdana': ['verdana.ttf', 'Verdana.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'],
-    'Verdana Bold': ['verdanab.ttf', 'Verdana-Bold.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'],
-    'Trebuchet MS': ['trebuc.ttf', 'Trebuchet-MS.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'],
-    'Trebuchet MS Bold': ['trebucbd.ttf', 'Trebuchet-MS-Bold.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'],
+# Available font families with fallback options
+FONT_FAMILIES = {
+    'Arial': {
+        'Regular': ['arial.ttf', 'Arial.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'],
+        'Bold': ['arialbd.ttf', 'Arial-Bold.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'],
+        'Italic': ['ariali.ttf', 'Arial-Italic.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf'],
+        'Bold Italic': ['arialbi.ttf', 'Arial-BoldItalic.ttf', '/usr/share/fonts/truetype/liberation/LiberationSans-BoldItalic.ttf']
+    },
+    'Times New Roman': {
+        'Regular': ['times.ttf', 'Times-New-Roman.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf'],
+        'Bold': ['timesbd.ttf', 'Times-New-Roman-Bold.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf'],
+        'Italic': ['timesi.ttf', 'Times-New-Roman-Italic.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf'],
+        'Bold Italic': ['timesbi.ttf', 'Times-New-Roman-BoldItalic.ttf', '/usr/share/fonts/truetype/liberation/LiberationSerif-BoldItalic.ttf']
+    },
+    'Courier New': {
+        'Regular': ['cour.ttf', 'Courier-New.ttf', '/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf'],
+        'Bold': ['courbd.ttf', 'Courier-New-Bold.ttf', '/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf'],
+        'Italic': ['couri.ttf', 'Courier-New-Italic.ttf', '/usr/share/fonts/truetype/liberation/LiberationMono-Italic.ttf'],
+        'Bold Italic': ['courbi.ttf', 'Courier-New-BoldItalic.ttf', '/usr/share/fonts/truetype/liberation/LiberationMono-BoldItalic.ttf']
+    }
 }
 
 
@@ -295,7 +300,10 @@ def save_config():
         'name_y': st.session_state.config['name_y'],
         'font_size': st.session_state.config['font_size'],
         'font_color': st.session_state.config['font_color'],
-        'font_style': st.session_state.config.get('font_style', 'Times New Roman Italic'),
+        'font_style': st.session_state.config.get('font_style', 'Arial'),
+        'font_weight': st.session_state.config.get('font_weight', 'Regular'),
+        'is_italic': st.session_state.config.get('is_italic', False),
+        'custom_font_path': st.session_state.config.get('custom_font_path'),
         'stroke_width': st.session_state.config.get('stroke_width', 0),
         'stroke_color': st.session_state.config.get('stroke_color', (0, 0, 0)),
         'participants': st.session_state.config['participants'],
@@ -360,7 +368,8 @@ def logout():
 
 
 def generate_certificate(name, template_img, x, y, font_size, color,
-                         font_style='Times New Roman Italic',
+                         font_family='Arial', font_weight='Regular', is_italic=False,
+                         custom_font_path=None,
                          stroke_width=0, stroke_color=(0, 0, 0)):
     """Generate certificate with name on template"""
     img = template_img.copy()
@@ -377,22 +386,40 @@ def generate_certificate(name, template_img, x, y, font_size, color,
         stroke_color = (0, 0, 0)
 
     font = None
-    font_paths = FONT_STYLES.get(font_style, FONT_STYLES['Times New Roman Italic'])
 
-    for font_path in font_paths:
+    # 1. Try custom font first
+    if custom_font_path and os.path.exists(custom_font_path):
         try:
-            font = ImageFont.truetype(font_path, int(font_size))
-            break
-        except Exception:
-            continue
+            font = ImageFont.truetype(custom_font_path, int(font_size))
+        except Exception as e:
+            st.warning(f"Failed to load custom font: {e}")
 
+    # 2. Try selected family and weight
+    if font is None:
+        style_key = font_weight
+        if is_italic:
+            if font_weight == 'Bold':
+                style_key = 'Bold Italic'
+            else:
+                style_key = 'Italic'
+        
+        family_config = FONT_FAMILIES.get(font_family, FONT_FAMILIES['Arial'])
+        variant_paths = family_config.get(style_key, family_config['Regular'])
+
+        for font_path in variant_paths:
+            try:
+                font = ImageFont.truetype(font_path, int(font_size))
+                break
+            except Exception:
+                continue
+
+    # 3. Fallback to system defaults
     if font is None:
         fallback_fonts = [
             "arial.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
             "/System/Library/Fonts/Helvetica.ttc",
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
             "/Library/Fonts/Arial.ttf",
         ]
         for fallback in fallback_fonts:
@@ -542,7 +569,10 @@ if mode == "📜 Download Certificate":
                     st.session_state.config.get('name_y', 400),
                     st.session_state.config.get('font_size', 60),
                     cert_color,
-                    st.session_state.config.get('font_style', 'Times New Roman Italic'),
+                    st.session_state.config.get('font_family', 'Arial'),
+                    st.session_state.config.get('font_weight', 'Regular'),
+                    st.session_state.config.get('is_italic', False),
+                    st.session_state.config.get('custom_font_path'),
                     st.session_state.config.get('stroke_width', 0),
                     cert_stroke_color,
                 )
@@ -613,8 +643,8 @@ elif mode == "🔧 Admin Panel":
         st.markdown(
             """
             <div class="info-card">
-                <h3 style="color:#A855F7; margin-top:0;">2️⃣  Configure Text Placement</h3>
-                <p style="color:#C4A8E0; font-size:0.88rem;">Adjust position, font, and styling for the participant name.</p>
+                <h3 style="color:#A855F7; margin-top:0;">2️⃣  Configure Text & Typography</h3>
+                <p style="color:#C4A8E0; font-size:0.88rem;">Adjust position, font family, and explicit styling.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -628,16 +658,35 @@ elif mode == "🔧 Admin Panel":
             name_y = st.number_input("Name Y Position (vertical)",
                                      min_value=0,
                                      value=st.session_state.config['name_y'])
-        with col2:
             font_size = st.slider("Font Size", 20, 150,
                                   st.session_state.config['font_size'])
-            font_style = st.selectbox(
-                "Font Style & Weight",
-                options=list(FONT_STYLES.keys()),
-                index=list(FONT_STYLES.keys()).index(
-                    st.session_state.config.get('font_style', 'Times New Roman Italic')),
-                help="Choose font family and weight.",
+        
+        with col2:
+            st.write("##### 🔠 Font Settings")
+            font_family = st.selectbox(
+                "Font Family",
+                options=list(FONT_FAMILIES.keys()) + ["Custom Upload"],
+                index=0 if st.session_state.config.get('font_family') not in FONT_FAMILIES else list(FONT_FAMILIES.keys()).index(st.session_state.config['font_family'])
             )
+            
+            if font_family == "Custom Upload":
+                font_file = st.file_uploader("Upload Font file (.ttf, .otf)", type=['ttf', 'otf'])
+                if font_file:
+                    with open("custom_font.ttf", "wb") as f:
+                        f.write(font_file.read())
+                    st.session_state.config['custom_font_path'] = "custom_font.ttf"
+                    st.success("Custom font uploaded!")
+                elif st.session_state.config.get('custom_font_path'):
+                    st.info(f"Using: {st.session_state.config['custom_font_path']}")
+            else:
+                st.session_state.config['custom_font_path'] = None
+                
+            col_s1, col_s2 = st.columns(2)
+            with col_s1:
+                font_weight = st.selectbox("Weight", ["Regular", "Bold"], 
+                                           index=0 if st.session_state.config.get('font_weight', 'Regular') == 'Regular' else 1)
+            with col_s2:
+                is_italic = st.checkbox("Italic Style", value=st.session_state.config.get('is_italic', False))
 
         st.markdown("##### 🎨 Text Styling")
         col3, col4 = st.columns(2)
@@ -659,7 +708,9 @@ elif mode == "🔧 Admin Panel":
         st.session_state.config['name_x'] = name_x
         st.session_state.config['name_y'] = name_y
         st.session_state.config['font_size'] = font_size
-        st.session_state.config['font_style'] = font_style
+        st.session_state.config['font_family'] = font_family
+        st.session_state.config['font_weight'] = font_weight
+        st.session_state.config['is_italic'] = is_italic
         st.session_state.config['font_color'] = font_color
         st.session_state.config['stroke_width'] = stroke_width
         st.session_state.config['stroke_color'] = stroke_color
@@ -691,14 +742,21 @@ elif mode == "🔧 Admin Panel":
                 preview_name,
                 st.session_state.config['template_image'],
                 int(name_x), int(name_y), int(font_size),
-                font_color, font_style, int(stroke_width), stroke_color,
+                font_color, 
+                font_family=font_family,
+                font_weight=font_weight,
+                is_italic=is_italic,
+                custom_font_path=st.session_state.config.get('custom_font_path'),
+                stroke_width=int(stroke_width), 
+                stroke_color=stroke_color,
             )
             st.image(preview_cert,
-                     caption=f"Preview (Font: {font_style}, Size: {font_size})",
+                     caption=f"Preview (Pos: {name_x}, {name_y})",
                      use_container_width=True)
 
         outline_text = f", Outline: {stroke_width}px" if stroke_width > 0 else ""
-        st.info(f"💡 Current: Font={font_style}, Size={font_size}, "
+        style_text = f"{font_weight} {'Italic' if is_italic else ''}".strip()
+        st.info(f"💡 Current: {font_family} ({style_text}), Size={font_size}, "
                 f"Position=({name_x}, {name_y}){outline_text}")
         st.caption("💡 Change settings above and click **Refresh Preview** to see changes.")
 
@@ -755,6 +813,16 @@ elif mode == "🔧 Admin Panel":
 # ═══════════════════════════════════════════════════════════════
 #  FOOTER
 # ═══════════════════════════════════════════════════════════════
+st.markdown("---")
+st.markdown(
+    """
+    <div class="footer">
+        © 2026 AWS Cloud Clubs – Mecs &nbsp;|&nbsp; Built with 💜 and Streamlit
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 st.markdown("---")
 st.markdown(
     """
